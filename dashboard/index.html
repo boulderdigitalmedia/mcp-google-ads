@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Ads Manager</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f5f5f3; color: #1a1a1a; font-size: 14px; }
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  .topbar { background: #fff; border-bottom: 0.5px solid #e0e0e0; padding: 0 1.5rem; display: flex; align-items: center; gap: 1.5rem; height: 52px; }
+  .topbar-logo { font-size: 15px; font-weight: 500; color: #1a1a1a; }
+  .topbar-logo span { color: #185FA5; }
+  .nav { display: flex; gap: 0; margin-left: 1rem; }
+  .nav-btn { background: none; border: none; padding: 0 1rem; height: 52px; font-size: 13px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .nav-btn:hover { color: #1a1a1a; }
+  .nav-btn.active { color: #185FA5; border-bottom-color: #185FA5; font-weight: 500; }
+  .account-badge { margin-left: auto; background: #E6F1FB; color: #0C447C; font-size: 11px; padding: 3px 10px; border-radius: 6px; font-weight: 500; }
+  .api-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #e24b4a; }
+  .status-dot.live { background: #639922; }
+  .main { flex: 1; padding: 1.5rem; }
+  .tab { display: none; }
+  .tab.active { display: block; }
+  .metrics-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+  .metric { background: #fff; border-radius: 10px; border: 0.5px solid #e0e0e0; padding: 1rem 1.25rem; }
+  .metric-label { font-size: 11px; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .metric-value { font-size: 22px; font-weight: 500; color: #1a1a1a; }
+  .metric-sub { font-size: 11px; color: #888; margin-top: 3px; }
+  .metric-change { font-size: 11px; margin-top: 3px; }
+  .metric-change.up { color: #3B6D11; }
+  .metric-change.down { color: #A32D2D; }
+  .card { background: #fff; border-radius: 10px; border: 0.5px solid #e0e0e0; margin-bottom: 1rem; overflow: hidden; }
+  .card-header { padding: 0.875rem 1.25rem; border-bottom: 0.5px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
+  .card-title { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+  .card-body { padding: 1.25rem; }
+  .chart-wrap { position: relative; width: 100%; height: 220px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; color: #888; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 0.5px solid #e0e0e0; }
+  td { padding: 10px 12px; border-bottom: 0.5px solid #f0f0f0; color: #1a1a1a; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+  .badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 5px; font-weight: 500; }
+  .badge-active { background: #EAF3DE; color: #27500A; }
+  .badge-paused { background: #F1EFE8; color: #444441; }
+  .badge-search { background: #E6F1FB; color: #0C447C; }
+  .badge-display { background: #E1F5EE; color: #085041; }
+  .action-btn { background: none; border: 0.5px solid #e0e0e0; border-radius: 6px; padding: 4px 10px; font-size: 11px; color: #444; cursor: pointer; }
+  .action-btn:hover { background: #f5f5f3; }
+  .action-btn.danger { color: #A32D2D; border-color: #F7C1C1; }
+  .action-btn.primary { color: #0C447C; border-color: #B5D4F4; background: #E6F1FB; }
+  .form-group { margin-bottom: 1rem; }
+  .form-label { font-size: 12px; color: #666; margin-bottom: 4px; display: block; }
+  .form-input { width: 100%; padding: 8px 10px; border: 0.5px solid #e0e0e0; border-radius: 6px; font-size: 13px; background: #fff; color: #1a1a1a; }
+  .form-input:focus { outline: none; border-color: #185FA5; }
+  textarea.form-input { min-height: 80px; resize: vertical; }
+  select.form-input { cursor: pointer; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .generate-btn { background: #185FA5; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; width: 100%; margin-top: 0.5rem; }
+  .generate-btn:hover { background: #0C447C; }
+  .ad-output { background: #f5f5f3; border-radius: 8px; padding: 1rem; margin-top: 1rem; }
+  .ad-output-label { font-size: 11px; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .ad-line { font-size: 13px; color: #1a1a1a; margin-bottom: 4px; padding: 6px 8px; background: #fff; border-radius: 5px; border: 0.5px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
+  .ad-line-num { font-size: 10px; color: #aaa; }
+  .char-count { font-size: 10px; }
+  .char-ok { color: #3B6D11; }
+  .char-warn { color: #854F0B; }
+  .char-over { color: #A32D2D; }
+  .budget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+  .slider-label { font-size: 12px; color: #666; width: 140px; flex-shrink: 0; }
+  .slider-val { font-size: 13px; font-weight: 500; width: 60px; text-align: right; }
+  input[type=range] { flex: 1; }
+  .projection-card { background: #f5f5f3; border-radius: 8px; padding: 1rem; }
+  .proj-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 0.5px solid #e8e8e5; font-size: 13px; }
+  .proj-row:last-child { border-bottom: none; font-weight: 500; }
+  .proj-label { color: #666; }
+  .proj-val { color: #1a1a1a; }
+  .changes-list { display: flex; flex-direction: column; gap: 8px; }
+  .change-item { background: #fff; border: 0.5px solid #e0e0e0; border-radius: 8px; padding: 0.875rem 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+  .change-info { flex: 1; }
+  .change-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .change-detail { font-size: 12px; color: #888; }
+  .change-actions { display: flex; gap: 8px; }
+  .report-section { margin-bottom: 1.5rem; }
+  .report-title { font-size: 15px; font-weight: 500; margin-bottom: 0.75rem; color: #1a1a1a; }
+  .report-metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 1rem; }
+  .insight-item { padding: 0.75rem 1rem; border-radius: 8px; font-size: 13px; margin-bottom: 6px; }
+  .insight-good { background: #EAF3DE; color: #27500A; }
+  .insight-warn { background: #FAEEDA; color: #633806; }
+  .insight-bad { background: #FCEBEB; color: #791F1F; }
+  .empty-state { text-align: center; padding: 3rem; color: #888; font-size: 13px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .api-banner { background: #FAEEDA; border: 0.5px solid #FAC775; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 12px; color: #633806; display: flex; align-items: center; gap: 8px; }
+  .connect-btn { margin-left: auto; background: #BA7517; color: #fff; border: none; padding: 5px 12px; border-radius: 5px; font-size: 11px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="topbar-logo">BDM <span>Ads</span> Manager</div>
+    <div class="nav">
+      <button class="nav-btn active" onclick="showTab('dashboard')">Dashboard</button>
+      <button class="nav-btn" onclick="showTab('adcopy')">Ad copy</button>
+      <button class="nav-btn" onclick="showTab('budget')">Budget planner</button>
+      <button class="nav-btn" onclick="showTab('changes')">Push changes</button>
+      <button class="nav-btn" onclick="showTab('report')">Monthly report</button>
+    </div>
+    <div class="api-status" style="margin-left:auto;">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">API: Pending approval</span>
+    </div>
+    <div class="account-badge">153-538-2254</div>
+  </div>
+
+  <div class="main">
+
+    <div class="api-banner" id="apiBanner">
+      <span>Google Ads API access pending — showing demo data. Connect when Basic access is approved.</span>
+      <button class="connect-btn" onclick="connectAPI()">Connect API</button>
+    </div>
+
+    <div class="tab active" id="tab-dashboard">
+      <div class="metrics-grid">
+        <div class="metric">
+          <div class="metric-label">Total spend (30d)</div>
+          <div class="metric-value">$155</div>
+          <div class="metric-sub">USD · 1 active campaign</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Conversions</div>
+          <div class="metric-value">11</div>
+          <div class="metric-change up">+22% vs prior period</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Cost per conversion</div>
+          <div class="metric-value">$14.09</div>
+          <div class="metric-change up">Strong performance</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Avg CTR</div>
+          <div class="metric-value">4.02%</div>
+          <div class="metric-sub">Display benchmark: 0.5%</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Campaign performance</span>
+            <select class="form-input" style="width:auto;font-size:12px;padding:4px 8px;" onchange="updateChart(this.value)">
+              <option value="cost">Cost</option>
+              <option value="clicks">Clicks</option>
+              <option value="conv">Conversions</option>
+            </select>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap">
+              <canvas id="campaignChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Campaigns</span></div>
+          <table>
+            <thead>
+              <tr>
+                <th>Campaign</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Budget</th>
+              </tr>
+            </thead>
+            <tbody id="campaignTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Top keywords by cost</span>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Keyword</th><th>Campaign</th><th>Match</th><th>Clicks</th><th>Cost</th><th>Conv.</th></tr>
+          </thead>
+          <tbody id="kwTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab" id="tab-adcopy">
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Ad copy generator</span></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Client / account</label>
+              <select class="form-input" id="adClient">
+                <option>Pacific Discovery</option>
+                <option>Boulder Digital Media</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Campaign type</label>
+              <select class="form-input" id="adCampaign">
+                <option>Gap year programs</option>
+                <option>Semester abroad</option>
+                <option>Brand protection</option>
+                <option>Retargeting</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Target destination (optional)</label>
+              <input class="form-input" id="adDest" placeholder="e.g. Hawaii, New Zealand, Costa Rica">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Key selling points</label>
+              <textarea class="form-input" id="adUSP" placeholder="e.g. Small groups, immersive experiences, expert guides, structured programs"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Call to action</label>
+              <select class="form-input" id="adCTA">
+                <option>Inquire today</option>
+                <option>Apply now</option>
+                <option>Learn more</option>
+                <option>Book a call</option>
+              </select>
+            </div>
+            <button class="generate-btn" onclick="generateAdCopy()">Generate ad copy</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Generated copy</span></div>
+          <div class="card-body" id="adOutput">
+            <div class="empty-state">Fill in the form and click generate to create ad copy</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab" id="tab-budget">
+      <div class="budget-grid">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Budget inputs</span></div>
+          <div class="card-body">
+            <div class="slider-row">
+              <span class="slider-label">Monthly budget (NZD)</span>
+              <input type="range" min="500" max="10000" step="100" value="1500" id="budgetSlider" oninput="updateBudget()">
+              <span class="slider-val" id="budgetVal">$1,500</span>
+            </div>
+            <div class="slider-row">
+              <span class="slider-label">Avg CPC (NZD)</span>
+              <input type="range" min="1" max="20" step="0.5" value="5" id="cpcSlider" oninput="updateBudget()">
+              <span class="slider-val" id="cpcVal">$5.00</span>
+            </div>
+            <div class="slider-row">
+              <span class="slider-label">Conversion rate (%)</span>
+              <input type="range" min="0.5" max="10" step="0.5" value="3" id="cvrSlider" oninput="updateBudget()">
+              <span class="slider-val" id="cvrVal">3.0%</span>
+            </div>
+            <div class="slider-row">
+              <span class="slider-label">Lead value (NZD)</span>
+              <input type="range" min="100" max="5000" step="100" value="1000" id="ltvSlider" oninput="updateBudget()">
+              <span class="slider-val" id="ltvVal">$1,000</span>
+            </div>
+
+            <div style="margin-top:1rem;">
+              <div class="form-label">Budget split</div>
+              <div class="slider-row">
+                <span class="slider-label">Brand protection</span>
+                <input type="range" min="0" max="30" step="1" value="10" id="split1" oninput="updateSplit()">
+                <span class="slider-val" id="split1val">10%</span>
+              </div>
+              <div class="slider-row">
+                <span class="slider-label">Search campaigns</span>
+                <input type="range" min="0" max="80" step="1" value="60" id="split2" oninput="updateSplit()">
+                <span class="slider-val" id="split2val">60%</span>
+              </div>
+              <div class="slider-row">
+                <span class="slider-label">Retargeting display</span>
+                <input type="range" min="0" max="50" step="1" value="30" id="split3" oninput="updateSplit()">
+                <span class="slider-val" id="split3val">30%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card" style="margin-bottom:1rem;">
+            <div class="card-header"><span class="card-title">Projected results</span></div>
+            <div class="card-body">
+              <div class="projection-card">
+                <div class="proj-row"><span class="proj-label">Daily budget</span><span class="proj-val" id="proj-daily">$50</span></div>
+                <div class="proj-row"><span class="proj-label">Est. monthly clicks</span><span class="proj-val" id="proj-clicks">300</span></div>
+                <div class="proj-row"><span class="proj-label">Est. monthly leads</span><span class="proj-val" id="proj-leads">9</span></div>
+                <div class="proj-row"><span class="proj-label">Cost per lead</span><span class="proj-val" id="proj-cpl">$167</span></div>
+                <div class="proj-row"><span class="proj-label">Est. monthly revenue</span><span class="proj-val" id="proj-rev">$9,000</span></div>
+                <div class="proj-row"><span class="proj-label">ROAS</span><span class="proj-val" id="proj-roas">6x</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><span class="card-title">Budget allocation</span></div>
+            <div class="card-body">
+              <div class="chart-wrap" style="height:180px;">
+                <canvas id="splitChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab" id="tab-changes">
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Propose a change</span></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Change type</label>
+              <select class="form-input" id="changeType" onchange="updateChangeForm()">
+                <option value="pause">Pause campaign</option>
+                <option value="enable">Enable campaign</option>
+                <option value="budget">Update budget</option>
+                <option value="negkw">Add negative keyword</option>
+                <option value="bid">Update bid</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Campaign</label>
+              <select class="form-input" id="changeCampaign">
+                <option>Display - Retargeting</option>
+                <option>Brand — Pacific Discovery</option>
+                <option>Gap year — High intent search</option>
+                <option>Semester abroad</option>
+              </select>
+            </div>
+            <div class="form-group" id="changeValueGroup" style="display:none;">
+              <label class="form-label" id="changeValueLabel">New value</label>
+              <input class="form-input" id="changeValue" placeholder="Enter value">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Reason / notes</label>
+              <textarea class="form-input" id="changeReason" placeholder="Why are you making this change?"></textarea>
+            </div>
+            <button class="generate-btn" onclick="addChange()">Add to queue</button>
+            <p style="font-size:11px;color:#888;margin-top:8px;text-align:center;">Changes are queued for review before being pushed to Google Ads</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Change queue</span>
+            <button class="action-btn primary" onclick="pushChanges()" id="pushBtn" style="display:none;">Push to Google Ads</button>
+          </div>
+          <div class="card-body" id="changeQueue">
+            <div class="empty-state">No changes queued. Add a change to get started.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab" id="tab-report">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <div>
+          <div style="font-size:18px;font-weight:500;">Monthly performance report</div>
+          <div style="font-size:12px;color:#888;margin-top:2px;">Pacific Discovery · April 2026</div>
+        </div>
+        <button class="action-btn primary" onclick="window.print()">Export PDF</button>
+      </div>
+
+      <div class="report-section">
+        <div class="report-title">Executive summary</div>
+        <div class="report-metric-grid">
+          <div class="metric"><div class="metric-label">Total spend</div><div class="metric-value">$155</div><div class="metric-sub">USD this month</div></div>
+          <div class="metric"><div class="metric-label">Conversions</div><div class="metric-value">11</div><div class="metric-sub">Form submissions</div></div>
+          <div class="metric"><div class="metric-label">Cost per lead</div><div class="metric-value">$14.09</div><div class="metric-sub">USD per conversion</div></div>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <div class="report-title">Key insights</div>
+        <div class="insight-item insight-good">Display retargeting is performing at $14.09 USD/conversion — well below industry average of $50-80 for education sector.</div>
+        <div class="insight-item insight-warn">14 search campaigns are paused. Reactivating 3-4 high-intent campaigns could significantly increase lead volume.</div>
+        <div class="insight-item insight-warn">Current budget of $5/day on retargeting is leaving performance on the table. Recommend increasing to $15/day.</div>
+        <div class="insight-item insight-bad">No brand protection campaign is active. Competitors may be bidding on "Pacific Discovery" brand terms.</div>
+      </div>
+
+      <div class="report-section">
+        <div class="report-title">Recommendations for next month</div>
+        <div class="changes-list">
+          <div class="change-item">
+            <div class="change-info">
+              <div class="change-title">Increase retargeting budget from $5 to $15/day</div>
+              <div class="change-detail">Current performance: $14.09/conversion · Projected additional conversions: 20-25/month</div>
+            </div>
+            <span class="badge badge-active">High priority</span>
+          </div>
+          <div class="change-item">
+            <div class="change-info">
+              <div class="change-title">Launch brand protection campaign at $5/day</div>
+              <div class="change-detail">Protect "Pacific Discovery" search terms from competitor bidding</div>
+            </div>
+            <span class="badge badge-active">High priority</span>
+          </div>
+          <div class="change-item">
+            <div class="change-info">
+              <div class="change-title">Launch high intent gap year search campaign at $30/day</div>
+              <div class="change-detail">Target "gap year programs", "gap year after high school" and destination-specific terms</div>
+            </div>
+            <span class="badge badge-paused">Medium priority</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const campaigns = [
+  { name: 'Display - Retargeting', type: 'Display', status: 'Active', budget: 5, impressions: 5051, clicks: 203, cost: 155, conv: 11 },
+  { name: 'High intent search keywords', type: 'Search', status: 'Paused', budget: 16, impressions: 0, clicks: 0, cost: 0, conv: 0 },
+  { name: 'Branded search protection', type: 'Search', status: 'Paused', budget: 5, impressions: 0, clicks: 0, cost: 0, conv: 0 },
+  { name: 'Search - Goal: Contacts', type: 'Search', status: 'Paused', budget: 15, impressions: 0, clicks: 0, cost: 0, conv: 0 },
+  { name: 'Search - Competitors', type: 'Search', status: 'Paused', budget: 10, impressions: 0, clicks: 0, cost: 0, conv: 0 },
+];
+
+const keywords = [
+  { kw: 'gap year programs', camp: 'Search', match: 'BROAD', clicks: 0, cost: 0, conv: 0 },
+  { kw: 'study abroad programs', camp: 'High intent', match: 'BROAD', clicks: 0, cost: 0, conv: 0 },
+  { kw: 'pacific discovery', camp: 'Brand', match: 'EXACT', clicks: 0, cost: 0, conv: 0 },
+  { kw: 'gap year programs hawaii', camp: 'Search', match: 'PHRASE', clicks: 0, cost: 0, conv: 0 },
+  { kw: 'semester abroad programs', camp: 'Search', match: 'PHRASE', clicks: 0, cost: 0, conv: 0 },
+];
+
+const adCopyBank = {
+  'Gap year programs': {
+    headlines: [
+      'Gap year programs abroad',
+      'Pacific Discovery gap year',
+      'Structured gap year programs',
+      'Gap year after high school',
+      'Small group gap year programs',
+      'Gap year — apply now',
+      'Immersive gap year experience',
+      'Gap year programs 2026',
+      'Expert-led gap year programs',
+      'Gap year in Hawaii & beyond',
+      'Real-world gap year learning',
+      'Life-changing gap year programs',
+      'Gap year programs — inquire today',
+      'Gap year programs NZ & Australia',
+      'Curated gap year experiences'
+    ],
+    descriptions: [
+      'Structured gap year programs for high school graduates. Small groups, expert guides, real destinations. Inquire today.',
+      'Immersive gap year experiences in Hawaii, New Zealand, Costa Rica & beyond. Limited spots available — apply now.',
+      'Pacific Discovery offers transformative gap year programs with expert guidance. Small groups, big impact. Learn more.',
+      'Turn your gap year into a life-defining experience. Expert-led programs across Asia, Pacific & the Americas.'
+    ]
+  },
+  'Semester abroad': {
+    headlines: [
+      'Semester abroad programs',
+      'Study abroad — semester programs',
+      'Semester abroad after high school',
+      'Gap semester programs',
+      'Semester in Hawaii & beyond',
+      'Structured semester abroad',
+      'Semester abroad — apply now',
+      'Expert-led semester programs',
+      'Small group semester abroad',
+      'Semester abroad 2026',
+      'Immersive semester experience',
+      'Semester programs — inquire now',
+      'Pacific semester programs',
+      'Semester abroad destinations',
+      'Real learning, semester abroad'
+    ],
+    descriptions: [
+      'Structured semester abroad programs for high school graduates. Small groups, expert guides, real impact. Inquire today.',
+      'Experience a semester in Hawaii, New Zealand, Costa Rica & more. Limited spots — apply now.',
+      'Pacific Discovery semester programs offer immersive learning experiences. Expert-led, small groups. Learn more.',
+      'Make your semester abroad count. Structured programs with real-world impact. Apply for 2026 enrollment.'
+    ]
+  },
+  'Brand protection': {
+    headlines: [
+      'Pacific Discovery — official site',
+      'Pacific Discovery programs',
+      'Gap year by Pacific Discovery',
+      'Pacific Discovery — apply now',
+      'Official Pacific Discovery site',
+      'Pacific Discovery 2026 programs',
+      'Pacific Discovery gap year',
+      'Pacific Discovery semester abroad',
+      'Pacific Discovery — inquire today',
+      'Award-winning gap year programs',
+      'Pacific Discovery — expert guides',
+      'Pacific Discovery small groups',
+      'Pacific Discovery destinations',
+      'Pacific Discovery applications open',
+      'Pacific Discovery — learn more'
+    ],
+    descriptions: [
+      'Official site for Pacific Discovery gap year & semester programs. Small groups, expert guides. Inquire today.',
+      'Pacific Discovery — immersive gap year & semester programs in Hawaii, NZ, Costa Rica & beyond. Apply now.',
+      'The official Pacific Discovery website. Explore our gap year and semester abroad programs for 2026.',
+      'Pacific Discovery offers expert-led, small-group programs. Transformative experiences. Inquire today.'
+    ]
+  },
+  'Retargeting': {
+    headlines: [
+      'Still thinking about your gap year?',
+      'Your gap year starts here',
+      'Limited spots remaining',
+      'Apply before spaces fill up',
+      'Your adventure is waiting',
+      'Gap year programs — apply today',
+      'Ready for your gap year?',
+      'Pacific Discovery — apply now',
+      'Small groups, big impact',
+      'Enroll for 2026 programs',
+      'Your questions answered',
+      'Talk to our team today',
+      'Spaces filling fast — apply now',
+      'Gap year 2026 — still open',
+      'Take the next step today'
+    ],
+    descriptions: [
+      'You visited us recently — we\'d love to answer your questions. Talk to our team today about 2026 programs.',
+      'Limited spots available for 2026 gap year programs. Small groups fill fast — secure your place today.',
+      'Still exploring your options? Pacific Discovery offers structured, expert-led programs. Inquire today.',
+      'Your gap year adventure is waiting. Pacific Discovery programs for 2026 are now open. Apply today.'
+    ]
+  }
+};
+
+let campaignChart, splitChart;
+let changeQueue = [];
+
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'budget') updateBudget();
+}
+
+function renderCampaignTable() {
+  const tbody = document.getElementById('campaignTable');
+  tbody.innerHTML = campaigns.map(c => `
+    <tr>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name}</td>
+      <td><span class="badge ${c.type === 'Display' ? 'badge-display' : 'badge-search'}">${c.type}</span></td>
+      <td><span class="badge ${c.status === 'Active' ? 'badge-active' : 'badge-paused'}">${c.status}</span></td>
+      <td>$${c.budget}/day</td>
+    </tr>
+  `).join('');
+}
+
+function renderKwTable() {
+  const tbody = document.getElementById('kwTable');
+  tbody.innerHTML = keywords.map(k => `
+    <tr>
+      <td>${k.kw}</td>
+      <td style="color:#888;">${k.camp}</td>
+      <td><span style="font-size:10px;color:#888;">${k.match}</span></td>
+      <td>${k.clicks}</td>
+      <td>$${k.cost.toFixed(2)}</td>
+      <td>${k.conv}</td>
+    </tr>
+  `).join('');
+}
+
+function buildCampaignChart(metric = 'cost') {
+  const ctx = document.getElementById('campaignChart').getContext('2d');
+  if (campaignChart) campaignChart.destroy();
+  const labels = campaigns.map(c => c.name.length > 20 ? c.name.substring(0, 20) + '...' : c.name);
+  const dataMap = { cost: campaigns.map(c => c.cost), clicks: campaigns.map(c => c.clicks), conv: campaigns.map(c => c.conv) };
+  campaignChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: dataMap[metric],
+        backgroundColor: campaigns.map(c => c.status === 'Active' ? '#378ADD' : '#D3D1C7'),
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 10 }, maxRotation: 30 }, grid: { display: false } },
+        y: { ticks: { font: { size: 11 } }, grid: { color: '#f0f0f0' } }
+      }
+    }
+  });
+}
+
+function updateChart(val) { buildCampaignChart(val); }
+
+function buildSplitChart() {
+  const ctx = document.getElementById('splitChart').getContext('2d');
+  if (splitChart) splitChart.destroy();
+  const s1 = parseInt(document.getElementById('split1').value);
+  const s2 = parseInt(document.getElementById('split2').value);
+  const s3 = parseInt(document.getElementById('split3').value);
+  splitChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Brand protection', 'Search campaigns', 'Retargeting display'],
+      datasets: [{ data: [s1, s2, s3], backgroundColor: ['#B5D4F4', '#378ADD', '#1D9E75'], borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 11 }, padding: 12, boxWidth: 10 } } },
+      cutout: '65%'
+    }
+  });
+}
+
+function updateBudget() {
+  const budget = parseInt(document.getElementById('budgetSlider').value);
+  const cpc = parseFloat(document.getElementById('cpcSlider').value);
+  const cvr = parseFloat(document.getElementById('cvrSlider').value);
+  const ltv = parseInt(document.getElementById('ltvSlider').value);
+  document.getElementById('budgetVal').textContent = '$' + budget.toLocaleString();
+  document.getElementById('cpcVal').textContent = '$' + cpc.toFixed(2);
+  document.getElementById('cvrVal').textContent = cvr.toFixed(1) + '%';
+  document.getElementById('ltvVal').textContent = '$' + ltv.toLocaleString();
+  const clicks = Math.round(budget / cpc);
+  const leads = Math.round(clicks * cvr / 100);
+  const cpl = leads > 0 ? Math.round(budget / leads) : 0;
+  const rev = leads * ltv;
+  const roas = budget > 0 ? (rev / budget).toFixed(1) : 0;
+  document.getElementById('proj-daily').textContent = '$' + Math.round(budget / 30);
+  document.getElementById('proj-clicks').textContent = clicks.toLocaleString();
+  document.getElementById('proj-leads').textContent = leads;
+  document.getElementById('proj-cpl').textContent = '$' + cpl;
+  document.getElementById('proj-rev').textContent = '$' + rev.toLocaleString();
+  document.getElementById('proj-roas').textContent = roas + 'x';
+  buildSplitChart();
+}
+
+function updateSplit() {
+  document.getElementById('split1val').textContent = document.getElementById('split1').value + '%';
+  document.getElementById('split2val').textContent = document.getElementById('split2').value + '%';
+  document.getElementById('split3val').textContent = document.getElementById('split3').value + '%';
+  buildSplitChart();
+}
+
+function generateAdCopy() {
+  const campaign = document.getElementById('adCampaign').value;
+  const dest = document.getElementById('adDest').value;
+  const cta = document.getElementById('adCTA').value;
+  const copy = adCopyBank[campaign] || adCopyBank['Gap year programs'];
+  let headlines = [...copy.headlines];
+  if (dest) {
+    headlines = headlines.map(h => h.replace(/hawaii & beyond|nz & australia/gi, dest));
+  }
+  const container = document.getElementById('adOutput');
+  container.innerHTML = `
+    <div class="ad-output-label">Headlines (max 30 chars each — use up to 15)</div>
+    ${headlines.map((h, i) => {
+      const len = h.length;
+      const cls = len <= 30 ? 'char-ok' : 'char-over';
+      return `<div class="ad-line"><span>${h}</span><span class="char-count ${cls}">${len}/30</span></div>`;
+    }).join('')}
+    <div class="ad-output-label" style="margin-top:1rem;">Descriptions (max 90 chars each — use up to 4)</div>
+    ${copy.descriptions.map((d, i) => {
+      const len = d.length;
+      const cls = len <= 90 ? 'char-ok' : len <= 95 ? 'char-warn' : 'char-over';
+      return `<div class="ad-line" style="align-items:flex-start;"><span style="flex:1;">${d}</span><span class="char-count ${cls}" style="margin-left:8px;white-space:nowrap;">${len}/90</span></div>`;
+    }).join('')}
+    <p style="font-size:11px;color:#888;margin-top:0.75rem;">Tip: Use at least 5 headlines and 2 descriptions in each RSA for best Ad Strength score.</p>
+  `;
+}
+
+function updateChangeForm() {
+  const type = document.getElementById('changeType').value;
+  const showVal = ['budget', 'negkw', 'bid'].includes(type);
+  document.getElementById('changeValueGroup').style.display = showVal ? 'block' : 'none';
+  const labels = { budget: 'New daily budget (NZD)', negkw: 'Negative keyword', bid: 'New target CPC (NZD)' };
+  if (labels[type]) document.getElementById('changeValueLabel').textContent = labels[type];
+}
+
+function addChange() {
+  const type = document.getElementById('changeType').value;
+  const campaign = document.getElementById('changeCampaign').value;
+  const value = document.getElementById('changeValue').value;
+  const reason = document.getElementById('changeReason').value;
+  const typeLabels = { pause: 'Pause campaign', enable: 'Enable campaign', budget: 'Update budget', negkw: 'Add negative keyword', bid: 'Update bid' };
+  changeQueue.push({ type, typeLabel: typeLabels[type], campaign, value, reason, id: Date.now() });
+  renderChangeQueue();
+  document.getElementById('changeReason').value = '';
+  document.getElementById('changeValue').value = '';
+}
+
+function removeChange(id) {
+  changeQueue = changeQueue.filter(c => c.id !== id);
+  renderChangeQueue();
+}
+
+function renderChangeQueue() {
+  const container = document.getElementById('changeQueue');
+  document.getElementById('pushBtn').style.display = changeQueue.length ? 'block' : 'none';
+  if (!changeQueue.length) {
+    container.innerHTML = '<div class="empty-state">No changes queued. Add a change to get started.</div>';
+    return;
+  }
+  container.innerHTML = '<div class="changes-list">' + changeQueue.map(c => `
+    <div class="change-item">
+      <div class="change-info">
+        <div class="change-title">${c.typeLabel} — ${c.campaign}</div>
+        <div class="change-detail">${c.value ? 'Value: ' + c.value + ' · ' : ''}${c.reason || 'No notes'}</div>
+      </div>
+      <div class="change-actions">
+        <button class="action-btn danger" onclick="removeChange(${c.id})">Remove</button>
+      </div>
+    </div>
+  `).join('') + '</div>';
+}
+
+function pushChanges() {
+  const banner = document.getElementById('apiBanner');
+  if (banner.style.display !== 'none') {
+    alert('Google Ads API access is pending. Changes will be pushed once Basic access is approved and the API is connected.');
+    return;
+  }
+  alert('Pushing ' + changeQueue.length + ' change(s) to Google Ads...');
+}
+
+function connectAPI() {
+  alert('Enter your MCP server URL to connect live Google Ads data.\n\nOnce Basic API access is approved:\n1. Deploy your MCP server to Render\n2. Enter the URL here\n3. Live data will replace demo data automatically');
+}
+
+renderCampaignTable();
+renderKwTable();
+setTimeout(() => {
+  buildCampaignChart();
+  updateBudget();
+}, 100);
+</script>
+</body>
+</html>
