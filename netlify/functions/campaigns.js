@@ -21,7 +21,7 @@ exports.handler = async function(event, context) {
     }
 
     const res = await fetch(
-      'https://googleads.googleapis.com/v17/customers/4185420382/googleAds:search',
+      'https://googleads.googleapis.com/v23/customers/4185420382/googleAds:search',
       {
         method: 'POST',
         headers: {
@@ -31,7 +31,7 @@ exports.handler = async function(event, context) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          query: `SELECT campaign.name FROM campaign LIMIT 5`
+          query: `SELECT campaign.name, campaign.status FROM campaign LIMIT 5`
         })
       }
     );
