@@ -10,14 +10,22 @@ exports.handler = async function(event, context) {
         grant_type: 'refresh_token'
       })
     });
-    const { access_token } = await tokenRes.json();
+    const tokenData = await tokenRes.json();
+    
+    if (!tokenData.access_token) {
+      return {
+        statusCode: 200,
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ debug: 'token_failed', tokenData })
+      };
+    }
 
     const adsRes = await fetch(
       'https://googleads.googleapis.com/v18/customers/1535382254/googleAds:search',
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${access_token}`,
+          'Authorization': `Bearer ${tokenData.access_token}`,
           'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
           'login-customer-id': '1535382254',
           'Content-Type': 'application/json'
@@ -43,16 +51,14 @@ exports.handler = async function(event, context) {
       }
     );
 
-    const data = await adsRes.json();
-
+    const rawText = await adsRes.text();
+    
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
+      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: adsRes.status, raw: rawText.substring(0, 2000) })
     };
+
   } catch (err) {
     return {
       statusCode: 500,
