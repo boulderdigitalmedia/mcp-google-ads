@@ -12,14 +12,6 @@ exports.handler = async function(event, context) {
     });
     const tokenData = await tokenRes.json();
 
-    if (!tokenData.access_token) {
-      return {
-        statusCode: 200,
-        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ debug: 'token_failed', tokenData })
-      };
-    }
-
     const res = await fetch(
       'https://googleads.googleapis.com/v23/customers/4185420382/googleAds:search',
       {
@@ -31,17 +23,50 @@ exports.handler = async function(event, context) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          query: `SELECT campaign.name, campaign.status FROM campaign LIMIT 5`
+          query: `
+            SELECT
+              campaign.id,
+              campaign.name,
+              campaign.status,
+              campaign.advertising_channel_type,
+              campaign_budget.amount_micros,
+              metrics.impressions,
+              metrics.clicks,
+              metrics.cost_micros,
+              metrics.conversions,
+              metrics.ctr,
+              metrics.average_cpc
+            FROM campaign
+            WHERE segments.date DURING LAST_30_DAYS
+            ORDER BY metrics.cost_micros DESC
+          `
         })
       }
     );
 
-    const text = await res.text();
+    const data = await res.json();
+
+    const campaigns = (data.results || []).map(r => ({
+      id: r.campaign.id,
+      name: r.campaign.name,
+      status: r.campaign.status,
+      type: r.campaign.advertisingChannelType,
+      budget: r.campaignBudget ? (r.campaignBudget.amountMicros / 1000000).toFixed(2) : 0,
+      impressions: r.metrics.impressions || 0,
+      clicks: r.metrics.clicks || 0,
+      cost: r.metrics.costMicros ? (r.metrics.costMicros / 1000000).toFixed(2) : 0,
+      conversions: r.metrics.conversions || 0,
+      ctr: r.metrics.ctr ? (r.metrics.ctr * 100).toFixed(2) : 0,
+      avgCpc: r.metrics.averageCpc ? (r.metrics.averageCpc / 1000000).toFixed(2) : 0
+    }));
 
     return {
       statusCode: 200,
-      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: res.status, body: text.substring(0, 2000) })
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ campaigns })
     };
 
   } catch (err) {
