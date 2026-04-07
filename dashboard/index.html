@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Google Ads Manager</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #f5f5f3; color: #1a1a1a; font-size: 14px; }
@@ -56,13 +55,10 @@
   .form-input:focus { outline: none; border-color: #185FA5; }
   textarea.form-input { min-height: 80px; resize: vertical; }
   select.form-input { cursor: pointer; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
   .generate-btn { background: #185FA5; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; width: 100%; margin-top: 0.5rem; }
   .generate-btn:hover { background: #0C447C; }
-  .ad-output { background: #f5f5f3; border-radius: 8px; padding: 1rem; margin-top: 1rem; }
   .ad-output-label { font-size: 11px; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
   .ad-line { font-size: 13px; color: #1a1a1a; margin-bottom: 4px; padding: 6px 8px; background: #fff; border-radius: 5px; border: 0.5px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
-  .ad-line-num { font-size: 10px; color: #aaa; }
   .char-count { font-size: 10px; }
   .char-ok { color: #3B6D11; }
   .char-warn { color: #854F0B; }
@@ -92,8 +88,7 @@
   .insight-bad { background: #FCEBEB; color: #791F1F; }
   .empty-state { text-align: center; padding: 3rem; color: #888; font-size: 13px; }
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  .api-banner { background: #FAEEDA; border: 0.5px solid #FAC775; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 12px; color: #633806; display: flex; align-items: center; gap: 8px; }
-  .connect-btn { margin-left: auto; background: #BA7517; color: #fff; border: none; padding: 5px 12px; border-radius: 5px; font-size: 11px; cursor: pointer; }
+  .loading { text-align: center; padding: 2rem; color: #888; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -101,48 +96,27 @@
   <div class="topbar">
     <div class="topbar-logo">BDM <span>Ads</span> Manager</div>
     <div class="nav">
-      <button class="nav-btn active" onclick="showTab('dashboard')">Dashboard</button>
-      <button class="nav-btn" onclick="showTab('adcopy')">Ad copy</button>
-      <button class="nav-btn" onclick="showTab('budget')">Budget planner</button>
-      <button class="nav-btn" onclick="showTab('changes')">Push changes</button>
-      <button class="nav-btn" onclick="showTab('report')">Monthly report</button>
+      <button class="nav-btn active" onclick="showTab('dashboard', event)">Dashboard</button>
+      <button class="nav-btn" onclick="showTab('adcopy', event)">Ad copy</button>
+      <button class="nav-btn" onclick="showTab('budget', event)">Budget planner</button>
+      <button class="nav-btn" onclick="showTab('changes', event)">Push changes</button>
+      <button class="nav-btn" onclick="showTab('report', event)">Monthly report</button>
     </div>
     <div class="api-status" style="margin-left:auto;">
       <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">API: Pending approval</span>
+      <span id="statusText">Connecting...</span>
     </div>
-    <div class="account-badge">153-538-2254</div>
+    <div class="account-badge">Pacific Discovery</div>
   </div>
 
   <div class="main">
 
-    <div class="api-banner" id="apiBanner">
-      <span>Google Ads API access pending — showing demo data. Connect when Basic access is approved.</span>
-      <button class="connect-btn" onclick="connectAPI()">Connect API</button>
-    </div>
-
     <div class="tab active" id="tab-dashboard">
-      <div class="metrics-grid">
-        <div class="metric">
-          <div class="metric-label">Total spend (30d)</div>
-          <div class="metric-value">$155</div>
-          <div class="metric-sub">USD · 1 active campaign</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Conversions</div>
-          <div class="metric-value">11</div>
-          <div class="metric-change up">+22% vs prior period</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Cost per conversion</div>
-          <div class="metric-value">$14.09</div>
-          <div class="metric-change up">Strong performance</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Avg CTR</div>
-          <div class="metric-value">4.02%</div>
-          <div class="metric-sub">Display benchmark: 0.5%</div>
-        </div>
+      <div class="metrics-grid" id="metricsGrid">
+        <div class="metric"><div class="metric-label">Total spend (30d)</div><div class="metric-value loading">—</div></div>
+        <div class="metric"><div class="metric-label">Conversions</div><div class="metric-value loading">—</div></div>
+        <div class="metric"><div class="metric-label">Cost per conversion</div><div class="metric-value loading">—</div></div>
+        <div class="metric"><div class="metric-label">Avg CTR</div><div class="metric-value loading">—</div></div>
       </div>
 
       <div class="two-col">
@@ -152,7 +126,7 @@
             <select class="form-input" style="width:auto;font-size:12px;padding:4px 8px;" onchange="updateChart(this.value)">
               <option value="cost">Cost</option>
               <option value="clicks">Clicks</option>
-              <option value="conv">Conversions</option>
+              <option value="conversions">Conversions</option>
             </select>
           </div>
           <div class="card-body">
@@ -170,23 +144,21 @@
                 <th>Campaign</th>
                 <th>Type</th>
                 <th>Status</th>
-                <th>Budget</th>
+                <th>Cost</th>
               </tr>
             </thead>
-            <tbody id="campaignTable"></tbody>
+            <tbody id="campaignTable"><tr><td colspan="4" class="loading" style="text-align:center;padding:2rem;color:#888;">Loading...</td></tr></tbody>
           </table>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-header">
-          <span class="card-title">Top keywords by cost</span>
-        </div>
+        <div class="card-header"><span class="card-title">Top keywords by cost</span></div>
         <table>
           <thead>
             <tr><th>Keyword</th><th>Campaign</th><th>Match</th><th>Clicks</th><th>Cost</th><th>Conv.</th></tr>
           </thead>
-          <tbody id="kwTable"></tbody>
+          <tbody id="kwTable"><tr><td colspan="6" style="text-align:center;padding:2rem;color:#888;">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -196,13 +168,6 @@
         <div class="card">
           <div class="card-header"><span class="card-title">Ad copy generator</span></div>
           <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">Client / account</label>
-              <select class="form-input" id="adClient">
-                <option>Pacific Discovery</option>
-                <option>Boulder Digital Media</option>
-              </select>
-            </div>
             <div class="form-group">
               <label class="form-label">Campaign type</label>
               <select class="form-input" id="adCampaign">
@@ -232,7 +197,6 @@
             <button class="generate-btn" onclick="generateAdCopy()">Generate ad copy</button>
           </div>
         </div>
-
         <div class="card">
           <div class="card-header"><span class="card-title">Generated copy</span></div>
           <div class="card-body" id="adOutput">
@@ -267,7 +231,6 @@
               <input type="range" min="100" max="5000" step="100" value="1000" id="ltvSlider" oninput="updateBudget()">
               <span class="slider-val" id="ltvVal">$1,000</span>
             </div>
-
             <div style="margin-top:1rem;">
               <div class="form-label">Budget split</div>
               <div class="slider-row">
@@ -288,7 +251,6 @@
             </div>
           </div>
         </div>
-
         <div>
           <div class="card" style="margin-bottom:1rem;">
             <div class="card-header"><span class="card-title">Projected results</span></div>
@@ -303,7 +265,6 @@
               </div>
             </div>
           </div>
-
           <div class="card">
             <div class="card-header"><span class="card-title">Budget allocation</span></div>
             <div class="card-body">
@@ -333,12 +294,7 @@
             </div>
             <div class="form-group">
               <label class="form-label">Campaign</label>
-              <select class="form-input" id="changeCampaign">
-                <option>Display - Retargeting</option>
-                <option>Brand — Pacific Discovery</option>
-                <option>Gap year — High intent search</option>
-                <option>Semester abroad</option>
-              </select>
+              <select class="form-input" id="changeCampaign"></select>
             </div>
             <div class="form-group" id="changeValueGroup" style="display:none;">
               <label class="form-label" id="changeValueLabel">New value</label>
@@ -352,7 +308,6 @@
             <p style="font-size:11px;color:#888;margin-top:8px;text-align:center;">Changes are queued for review before being pushed to Google Ads</p>
           </div>
         </div>
-
         <div class="card">
           <div class="card-header">
             <span class="card-title">Change queue</span>
@@ -373,31 +328,27 @@
         </div>
         <button class="action-btn primary" onclick="window.print()">Export PDF</button>
       </div>
-
       <div class="report-section">
         <div class="report-title">Executive summary</div>
-        <div class="report-metric-grid">
-          <div class="metric"><div class="metric-label">Total spend</div><div class="metric-value">$155</div><div class="metric-sub">USD this month</div></div>
-          <div class="metric"><div class="metric-label">Conversions</div><div class="metric-value">11</div><div class="metric-sub">Form submissions</div></div>
-          <div class="metric"><div class="metric-label">Cost per lead</div><div class="metric-value">$14.09</div><div class="metric-sub">USD per conversion</div></div>
+        <div class="report-metric-grid" id="reportMetrics">
+          <div class="metric"><div class="metric-label">Total spend</div><div class="metric-value" id="rep-spend">—</div><div class="metric-sub">USD this month</div></div>
+          <div class="metric"><div class="metric-label">Conversions</div><div class="metric-value" id="rep-conv">—</div><div class="metric-sub">Form submissions</div></div>
+          <div class="metric"><div class="metric-label">Cost per lead</div><div class="metric-value" id="rep-cpl">—</div><div class="metric-sub">USD per conversion</div></div>
         </div>
       </div>
-
       <div class="report-section">
         <div class="report-title">Key insights</div>
-        <div class="insight-item insight-good">Display retargeting is performing at $14.09 USD/conversion — well below industry average of $50-80 for education sector.</div>
-        <div class="insight-item insight-warn">14 search campaigns are paused. Reactivating 3-4 high-intent campaigns could significantly increase lead volume.</div>
-        <div class="insight-item insight-warn">Current budget of $5/day on retargeting is leaving performance on the table. Recommend increasing to $15/day.</div>
-        <div class="insight-item insight-bad">No brand protection campaign is active. Competitors may be bidding on "Pacific Discovery" brand terms.</div>
+        <div id="reportInsights">
+          <div class="insight-item insight-warn">Loading campaign data for insights...</div>
+        </div>
       </div>
-
       <div class="report-section">
         <div class="report-title">Recommendations for next month</div>
         <div class="changes-list">
           <div class="change-item">
             <div class="change-info">
               <div class="change-title">Increase retargeting budget from $5 to $15/day</div>
-              <div class="change-detail">Current performance: $14.09/conversion · Projected additional conversions: 20-25/month</div>
+              <div class="change-detail">Current performance: strong · Projected additional conversions: 20-25/month</div>
             </div>
             <span class="badge badge-active">High priority</span>
           </div>
@@ -424,174 +375,118 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-const campaigns = [
-  { name: 'Display - Retargeting', type: 'Display', status: 'Active', budget: 5, impressions: 5051, clicks: 203, cost: 155, conv: 11 },
-  { name: 'High intent search keywords', type: 'Search', status: 'Paused', budget: 16, impressions: 0, clicks: 0, cost: 0, conv: 0 },
-  { name: 'Branded search protection', type: 'Search', status: 'Paused', budget: 5, impressions: 0, clicks: 0, cost: 0, conv: 0 },
-  { name: 'Search - Goal: Contacts', type: 'Search', status: 'Paused', budget: 15, impressions: 0, clicks: 0, cost: 0, conv: 0 },
-  { name: 'Search - Competitors', type: 'Search', status: 'Paused', budget: 10, impressions: 0, clicks: 0, cost: 0, conv: 0 },
-];
-
-const keywords = [
-  { kw: 'gap year programs', camp: 'Search', match: 'BROAD', clicks: 0, cost: 0, conv: 0 },
-  { kw: 'study abroad programs', camp: 'High intent', match: 'BROAD', clicks: 0, cost: 0, conv: 0 },
-  { kw: 'pacific discovery', camp: 'Brand', match: 'EXACT', clicks: 0, cost: 0, conv: 0 },
-  { kw: 'gap year programs hawaii', camp: 'Search', match: 'PHRASE', clicks: 0, cost: 0, conv: 0 },
-  { kw: 'semester abroad programs', camp: 'Search', match: 'PHRASE', clicks: 0, cost: 0, conv: 0 },
-];
-
-const adCopyBank = {
-  'Gap year programs': {
-    headlines: [
-      'Gap year programs abroad',
-      'Pacific Discovery gap year',
-      'Structured gap year programs',
-      'Gap year after high school',
-      'Small group gap year programs',
-      'Gap year — apply now',
-      'Immersive gap year experience',
-      'Gap year programs 2026',
-      'Expert-led gap year programs',
-      'Gap year in Hawaii & beyond',
-      'Real-world gap year learning',
-      'Life-changing gap year programs',
-      'Gap year programs — inquire today',
-      'Gap year programs NZ & Australia',
-      'Curated gap year experiences'
-    ],
-    descriptions: [
-      'Structured gap year programs for high school graduates. Small groups, expert guides, real destinations. Inquire today.',
-      'Immersive gap year experiences in Hawaii, New Zealand, Costa Rica & beyond. Limited spots available — apply now.',
-      'Pacific Discovery offers transformative gap year programs with expert guidance. Small groups, big impact. Learn more.',
-      'Turn your gap year into a life-defining experience. Expert-led programs across Asia, Pacific & the Americas.'
-    ]
-  },
-  'Semester abroad': {
-    headlines: [
-      'Semester abroad programs',
-      'Study abroad — semester programs',
-      'Semester abroad after high school',
-      'Gap semester programs',
-      'Semester in Hawaii & beyond',
-      'Structured semester abroad',
-      'Semester abroad — apply now',
-      'Expert-led semester programs',
-      'Small group semester abroad',
-      'Semester abroad 2026',
-      'Immersive semester experience',
-      'Semester programs — inquire now',
-      'Pacific semester programs',
-      'Semester abroad destinations',
-      'Real learning, semester abroad'
-    ],
-    descriptions: [
-      'Structured semester abroad programs for high school graduates. Small groups, expert guides, real impact. Inquire today.',
-      'Experience a semester in Hawaii, New Zealand, Costa Rica & more. Limited spots — apply now.',
-      'Pacific Discovery semester programs offer immersive learning experiences. Expert-led, small groups. Learn more.',
-      'Make your semester abroad count. Structured programs with real-world impact. Apply for 2026 enrollment.'
-    ]
-  },
-  'Brand protection': {
-    headlines: [
-      'Pacific Discovery — official site',
-      'Pacific Discovery programs',
-      'Gap year by Pacific Discovery',
-      'Pacific Discovery — apply now',
-      'Official Pacific Discovery site',
-      'Pacific Discovery 2026 programs',
-      'Pacific Discovery gap year',
-      'Pacific Discovery semester abroad',
-      'Pacific Discovery — inquire today',
-      'Award-winning gap year programs',
-      'Pacific Discovery — expert guides',
-      'Pacific Discovery small groups',
-      'Pacific Discovery destinations',
-      'Pacific Discovery applications open',
-      'Pacific Discovery — learn more'
-    ],
-    descriptions: [
-      'Official site for Pacific Discovery gap year & semester programs. Small groups, expert guides. Inquire today.',
-      'Pacific Discovery — immersive gap year & semester programs in Hawaii, NZ, Costa Rica & beyond. Apply now.',
-      'The official Pacific Discovery website. Explore our gap year and semester abroad programs for 2026.',
-      'Pacific Discovery offers expert-led, small-group programs. Transformative experiences. Inquire today.'
-    ]
-  },
-  'Retargeting': {
-    headlines: [
-      'Still thinking about your gap year?',
-      'Your gap year starts here',
-      'Limited spots remaining',
-      'Apply before spaces fill up',
-      'Your adventure is waiting',
-      'Gap year programs — apply today',
-      'Ready for your gap year?',
-      'Pacific Discovery — apply now',
-      'Small groups, big impact',
-      'Enroll for 2026 programs',
-      'Your questions answered',
-      'Talk to our team today',
-      'Spaces filling fast — apply now',
-      'Gap year 2026 — still open',
-      'Take the next step today'
-    ],
-    descriptions: [
-      'You visited us recently — we\'d love to answer your questions. Talk to our team today about 2026 programs.',
-      'Limited spots available for 2026 gap year programs. Small groups fill fast — secure your place today.',
-      'Still exploring your options? Pacific Discovery offers structured, expert-led programs. Inquire today.',
-      'Your gap year adventure is waiting. Pacific Discovery programs for 2026 are now open. Apply today.'
-    ]
-  }
-};
-
+const API_BASE = 'https://velvety-crostata-ca811d.netlify.app/.netlify/functions';
+let liveCampaigns = [];
 let campaignChart, splitChart;
 let changeQueue = [];
 
-function showTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  event.target.classList.add('active');
-  if (name === 'budget') updateBudget();
+const adCopyBank = {
+  'Gap year programs': {
+    headlines: ['Gap year programs abroad','Pacific Discovery gap year','Structured gap year programs','Gap year after high school','Small group gap year programs','Gap year — apply now','Immersive gap year experience','Gap year programs 2026','Expert-led gap year programs','Gap year in Hawaii & beyond','Real-world gap year learning','Life-changing gap year programs','Gap year programs — inquire today','Gap year programs NZ & Australia','Curated gap year experiences'],
+    descriptions: ['Structured gap year programs for high school graduates. Small groups, expert guides, real destinations. Inquire today.','Immersive gap year experiences in Hawaii, New Zealand, Costa Rica & beyond. Limited spots available — apply now.','Pacific Discovery offers transformative gap year programs with expert guidance. Small groups, big impact. Learn more.','Turn your gap year into a life-defining experience. Expert-led programs across Asia, Pacific & the Americas.']
+  },
+  'Semester abroad': {
+    headlines: ['Semester abroad programs','Study abroad — semester programs','Semester abroad after high school','Gap semester programs','Semester in Hawaii & beyond','Structured semester abroad','Semester abroad — apply now','Expert-led semester programs','Small group semester abroad','Semester abroad 2026','Immersive semester experience','Semester programs — inquire now','Pacific semester programs','Semester abroad destinations','Real learning, semester abroad'],
+    descriptions: ['Structured semester abroad programs for high school graduates. Small groups, expert guides, real impact. Inquire today.','Experience a semester in Hawaii, New Zealand, Costa Rica & more. Limited spots — apply now.','Pacific Discovery semester programs offer immersive learning experiences. Expert-led, small groups. Learn more.','Make your semester abroad count. Structured programs with real-world impact. Apply for 2026 enrollment.']
+  },
+  'Brand protection': {
+    headlines: ['Pacific Discovery — official site','Pacific Discovery programs','Gap year by Pacific Discovery','Pacific Discovery — apply now','Official Pacific Discovery site','Pacific Discovery 2026 programs','Pacific Discovery gap year','Pacific Discovery semester abroad','Pacific Discovery — inquire today','Award-winning gap year programs','Pacific Discovery — expert guides','Pacific Discovery small groups','Pacific Discovery destinations','Pacific Discovery applications open','Pacific Discovery — learn more'],
+    descriptions: ['Official site for Pacific Discovery gap year & semester programs. Small groups, expert guides. Inquire today.','Pacific Discovery — immersive gap year & semester programs in Hawaii, NZ, Costa Rica & beyond. Apply now.','The official Pacific Discovery website. Explore our gap year and semester abroad programs for 2026.','Pacific Discovery offers expert-led, small-group programs. Transformative experiences. Inquire today.']
+  },
+  'Retargeting': {
+    headlines: ['Still thinking about your gap year?','Your gap year starts here','Limited spots remaining','Apply before spaces fill up','Your adventure is waiting','Gap year programs — apply today','Ready for your gap year?','Pacific Discovery — apply now','Small groups, big impact','Enroll for 2026 programs','Your questions answered','Talk to our team today','Spaces filling fast — apply now','Gap year 2026 — still open','Take the next step today'],
+    descriptions: ['You visited us recently — we\'d love to answer your questions. Talk to our team today about 2026 programs.','Limited spots available for 2026 gap year programs. Small groups fill fast — secure your place today.','Still exploring your options? Pacific Discovery offers structured, expert-led programs. Inquire today.','Your gap year adventure is waiting. Pacific Discovery programs for 2026 are now open. Apply today.']
+  }
+};
+
+async function loadCampaigns() {
+  try {
+    const res = await fetch(`${API_BASE}/campaigns`);
+    const data = await res.json();
+    if (data.campaigns && data.campaigns.length > 0) {
+      liveCampaigns = data.campaigns;
+      document.getElementById('statusDot').classList.add('live');
+      document.getElementById('statusText').textContent = 'API: Live';
+      renderCampaignTable(liveCampaigns);
+      buildCampaignChart(liveCampaigns, 'cost');
+      updateSummaryMetrics(liveCampaigns);
+      updateReportMetrics(liveCampaigns);
+      populateChangeCampaigns(liveCampaigns);
+    } else {
+      setAPIError('No campaign data returned');
+    }
+  } catch (err) {
+    setAPIError(err.message);
+  }
 }
 
-function renderCampaignTable() {
+function setAPIError(msg) {
+  document.getElementById('statusDot').style.background = '#e24b4a';
+  document.getElementById('statusText').textContent = 'API: Error';
+  document.getElementById('campaignTable').innerHTML = `<tr><td colspan="4" style="text-align:center;padding:2rem;color:#888;">Could not load data: ${msg}</td></tr>`;
+}
+
+function updateSummaryMetrics(campaigns) {
+  const totalSpend = campaigns.reduce((s, c) => s + parseFloat(c.cost || 0), 0);
+  const totalConv = campaigns.reduce((s, c) => s + parseFloat(c.conversions || 0), 0);
+  const totalClicks = campaigns.reduce((s, c) => s + parseFloat(c.clicks || 0), 0);
+  const totalImpressions = campaigns.reduce((s, c) => s + parseFloat(c.impressions || 0), 0);
+  const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions * 100) : 0;
+  const cpl = totalConv > 0 ? (totalSpend / totalConv).toFixed(2) : 'N/A';
+
+  document.getElementById('metricsGrid').innerHTML = `
+    <div class="metric"><div class="metric-label">Total spend (30d)</div><div class="metric-value">$${totalSpend.toFixed(2)}</div><div class="metric-sub">USD · live data</div></div>
+    <div class="metric"><div class="metric-label">Conversions</div><div class="metric-value">${totalConv}</div><div class="metric-sub">Last 30 days</div></div>
+    <div class="metric"><div class="metric-label">Cost per conversion</div><div class="metric-value">${cpl === 'N/A' ? 'N/A' : '$' + cpl}</div><div class="metric-sub">USD per conversion</div></div>
+    <div class="metric"><div class="metric-label">Avg CTR</div><div class="metric-value">${avgCTR.toFixed(2)}%</div><div class="metric-sub">Across all campaigns</div></div>
+  `;
+}
+
+function updateReportMetrics(campaigns) {
+  const totalSpend = campaigns.reduce((s, c) => s + parseFloat(c.cost || 0), 0);
+  const totalConv = campaigns.reduce((s, c) => s + parseFloat(c.conversions || 0), 0);
+  const cpl = totalConv > 0 ? '$' + (totalSpend / totalConv).toFixed(2) : 'N/A';
+  document.getElementById('rep-spend').textContent = '$' + totalSpend.toFixed(2);
+  document.getElementById('rep-conv').textContent = totalConv;
+  document.getElementById('rep-cpl').textContent = cpl;
+
+  const active = campaigns.filter(c => c.status === 'ENABLED').length;
+  const paused = campaigns.filter(c => c.status === 'PAUSED').length;
+  document.getElementById('reportInsights').innerHTML = `
+    <div class="insight-item ${active > 0 ? 'insight-good' : 'insight-bad'}">${active} campaign${active !== 1 ? 's' : ''} currently active out of ${campaigns.length} total.</div>
+    <div class="insight-item insight-warn">${paused} campaigns paused. Review and reactivate high-intent campaigns to increase lead volume.</div>
+    <div class="insight-item ${totalConv > 0 ? 'insight-good' : 'insight-warn'}">${totalConv > 0 ? 'Conversions tracked — cost per lead is $' + (totalSpend / totalConv).toFixed(2) + ' USD.' : 'No conversions recorded in last 30 days. Check conversion tracking setup.'}</div>
+  `;
+}
+
+function renderCampaignTable(campaigns) {
   const tbody = document.getElementById('campaignTable');
   tbody.innerHTML = campaigns.map(c => `
     <tr>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name}</td>
-      <td><span class="badge ${c.type === 'Display' ? 'badge-display' : 'badge-search'}">${c.type}</span></td>
-      <td><span class="badge ${c.status === 'Active' ? 'badge-active' : 'badge-paused'}">${c.status}</span></td>
-      <td>$${c.budget}/day</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${c.name}">${c.name}</td>
+      <td><span class="badge ${c.type === 'DISPLAY' ? 'badge-display' : 'badge-search'}">${c.type || 'Search'}</span></td>
+      <td><span class="badge ${c.status === 'ENABLED' ? 'badge-active' : 'badge-paused'}">${c.status === 'ENABLED' ? 'Active' : 'Paused'}</span></td>
+      <td>$${parseFloat(c.cost || 0).toFixed(2)}</td>
     </tr>
   `).join('');
 }
 
-function renderKwTable() {
-  const tbody = document.getElementById('kwTable');
-  tbody.innerHTML = keywords.map(k => `
-    <tr>
-      <td>${k.kw}</td>
-      <td style="color:#888;">${k.camp}</td>
-      <td><span style="font-size:10px;color:#888;">${k.match}</span></td>
-      <td>${k.clicks}</td>
-      <td>$${k.cost.toFixed(2)}</td>
-      <td>${k.conv}</td>
-    </tr>
-  `).join('');
-}
-
-function buildCampaignChart(metric = 'cost') {
+function buildCampaignChart(campaigns, metric) {
   const ctx = document.getElementById('campaignChart').getContext('2d');
   if (campaignChart) campaignChart.destroy();
-  const labels = campaigns.map(c => c.name.length > 20 ? c.name.substring(0, 20) + '...' : c.name);
-  const dataMap = { cost: campaigns.map(c => c.cost), clicks: campaigns.map(c => c.clicks), conv: campaigns.map(c => c.conv) };
+  const labels = campaigns.map(c => c.name.length > 18 ? c.name.substring(0, 18) + '...' : c.name);
+  const dataMap = {
+    cost: campaigns.map(c => parseFloat(c.cost || 0)),
+    clicks: campaigns.map(c => parseFloat(c.clicks || 0)),
+    conversions: campaigns.map(c => parseFloat(c.conversions || 0))
+  };
   campaignChart = new Chart(ctx, {
     type: 'bar',
     data: {
       labels,
       datasets: [{
-        data: dataMap[metric],
-        backgroundColor: campaigns.map(c => c.status === 'Active' ? '#378ADD' : '#D3D1C7'),
+        data: dataMap[metric] || dataMap.cost,
+        backgroundColor: campaigns.map(c => c.status === 'ENABLED' ? '#378ADD' : '#D3D1C7'),
         borderRadius: 4,
         borderSkipped: false
       }]
@@ -607,7 +502,14 @@ function buildCampaignChart(metric = 'cost') {
   });
 }
 
-function updateChart(val) { buildCampaignChart(val); }
+function updateChart(val) {
+  if (liveCampaigns.length) buildCampaignChart(liveCampaigns, val);
+}
+
+function populateChangeCampaigns(campaigns) {
+  const select = document.getElementById('changeCampaign');
+  select.innerHTML = campaigns.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
 
 function buildSplitChart() {
   const ctx = document.getElementById('splitChart').getContext('2d');
@@ -659,30 +561,32 @@ function updateSplit() {
   buildSplitChart();
 }
 
+function showTab(name, event) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (event) event.target.classList.add('active');
+  if (name === 'budget') updateBudget();
+}
+
 function generateAdCopy() {
   const campaign = document.getElementById('adCampaign').value;
   const dest = document.getElementById('adDest').value;
-  const cta = document.getElementById('adCTA').value;
   const copy = adCopyBank[campaign] || adCopyBank['Gap year programs'];
   let headlines = [...copy.headlines];
-  if (dest) {
-    headlines = headlines.map(h => h.replace(/hawaii & beyond|nz & australia/gi, dest));
-  }
-  const container = document.getElementById('adOutput');
-  container.innerHTML = `
-    <div class="ad-output-label">Headlines (max 30 chars each — use up to 15)</div>
-    ${headlines.map((h, i) => {
+  if (dest) headlines = headlines.map(h => h.replace(/hawaii & beyond|nz & australia/gi, dest));
+  document.getElementById('adOutput').innerHTML = `
+    <div class="ad-output-label">Headlines (max 30 chars each)</div>
+    ${headlines.map(h => {
       const len = h.length;
-      const cls = len <= 30 ? 'char-ok' : 'char-over';
-      return `<div class="ad-line"><span>${h}</span><span class="char-count ${cls}">${len}/30</span></div>`;
+      return `<div class="ad-line"><span>${h}</span><span class="char-count ${len <= 30 ? 'char-ok' : 'char-over'}">${len}/30</span></div>`;
     }).join('')}
-    <div class="ad-output-label" style="margin-top:1rem;">Descriptions (max 90 chars each — use up to 4)</div>
-    ${copy.descriptions.map((d, i) => {
+    <div class="ad-output-label" style="margin-top:1rem;">Descriptions (max 90 chars each)</div>
+    ${copy.descriptions.map(d => {
       const len = d.length;
-      const cls = len <= 90 ? 'char-ok' : len <= 95 ? 'char-warn' : 'char-over';
-      return `<div class="ad-line" style="align-items:flex-start;"><span style="flex:1;">${d}</span><span class="char-count ${cls}" style="margin-left:8px;white-space:nowrap;">${len}/90</span></div>`;
+      return `<div class="ad-line" style="align-items:flex-start;"><span style="flex:1;">${d}</span><span class="char-count ${len <= 90 ? 'char-ok' : 'char-over'}" style="margin-left:8px;white-space:nowrap;">${len}/90</span></div>`;
     }).join('')}
-    <p style="font-size:11px;color:#888;margin-top:0.75rem;">Tip: Use at least 5 headlines and 2 descriptions in each RSA for best Ad Strength score.</p>
+    <p style="font-size:11px;color:#888;margin-top:0.75rem;">Tip: Use at least 5 headlines and 2 descriptions for best Ad Strength score.</p>
   `;
 }
 
@@ -696,11 +600,12 @@ function updateChangeForm() {
 
 function addChange() {
   const type = document.getElementById('changeType').value;
-  const campaign = document.getElementById('changeCampaign').value;
+  const campaignSelect = document.getElementById('changeCampaign');
+  const campaignName = campaignSelect.options[campaignSelect.selectedIndex].text;
   const value = document.getElementById('changeValue').value;
   const reason = document.getElementById('changeReason').value;
   const typeLabels = { pause: 'Pause campaign', enable: 'Enable campaign', budget: 'Update budget', negkw: 'Add negative keyword', bid: 'Update bid' };
-  changeQueue.push({ type, typeLabel: typeLabels[type], campaign, value, reason, id: Date.now() });
+  changeQueue.push({ type, typeLabel: typeLabels[type], campaign: campaignName, value, reason, id: Date.now() });
   renderChangeQueue();
   document.getElementById('changeReason').value = '';
   document.getElementById('changeValue').value = '';
@@ -732,24 +637,11 @@ function renderChangeQueue() {
 }
 
 function pushChanges() {
-  const banner = document.getElementById('apiBanner');
-  if (banner.style.display !== 'none') {
-    alert('Google Ads API access is pending. Changes will be pushed once Basic access is approved and the API is connected.');
-    return;
-  }
-  alert('Pushing ' + changeQueue.length + ' change(s) to Google Ads...');
+  alert('Push to Google Ads coming soon — write access requires Standard API access tier.');
 }
 
-function connectAPI() {
-  alert('Enter your MCP server URL to connect live Google Ads data.\n\nOnce Basic API access is approved:\n1. Deploy your MCP server to Render\n2. Enter the URL here\n3. Live data will replace demo data automatically');
-}
-
-renderCampaignTable();
-renderKwTable();
-setTimeout(() => {
-  buildCampaignChart();
-  updateBudget();
-}, 100);
+loadCampaigns();
+setTimeout(() => updateBudget(), 100);
 </script>
 </body>
 </html>
