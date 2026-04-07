@@ -53,4 +53,5 @@ site/
 
 google_ads_token.json
 
-uv.lock
+uv.lockclient_secret.json
+client_secret.json
