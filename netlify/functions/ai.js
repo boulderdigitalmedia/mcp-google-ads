@@ -14,7 +14,7 @@ exports.handler = async function(event, context) {
   try {
     const { messages, campaignData } = JSON.parse(event.body);
 
-    const systemPrompt = `You are an expert Google Ads analyst for Pacific Discovery, a gap year and semester abroad program company targeting high school graduates. 
+    const systemPrompt = `You are an expert Google Ads analyst for Pacific Discovery, a gap year and semester abroad program company targeting high school graduates.
 
 You have access to their live campaign data and provide specific, actionable recommendations.
 
@@ -46,6 +46,14 @@ ${campaignData ? `Current campaign data:\n${JSON.stringify(campaignData, null, 2
     });
 
     const data = await res.json();
+
+    if (!data.content) {
+      return {
+        statusCode: 200,
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'No content in response', raw: data })
+      };
+    }
 
     return {
       statusCode: 200,
