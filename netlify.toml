@@ -1,0 +1,7 @@
+[build]
+  publish = "dashboard"
+  functions = "netlify/functions"
+
+[functions]
+  external_node_modules = ["node-fetch"]
+  node_bundler = "esbuild"
