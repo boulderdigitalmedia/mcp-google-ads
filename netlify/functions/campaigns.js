@@ -20,28 +20,28 @@ exports.handler = async function(event, context) {
       };
     }
 
-    const results = {};
-    for (const version of ['v19', 'v18', 'v17', 'v16']) {
-      const res = await fetch(
-        `https://googleads.googleapis.com/${version}/customers/1535382254/googleAds:search`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${tokenData.access_token}`,
-            'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
-            'login-customer-id': '1535382254',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ query: `SELECT campaign.name FROM campaign LIMIT 1` })
-        }
-      );
-      results[version] = { status: res.status, body: (await res.text()).substring(0, 300) };
-    }
+    const res = await fetch(
+      'https://googleads.googleapis.com/v17/customers/4185420382/googleAds:search',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+          'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+          'login-customer-id': '1535382254',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: `SELECT campaign.name FROM campaign LIMIT 5`
+        })
+      }
+    );
+
+    const text = await res.text();
 
     return {
       statusCode: 200,
       headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
-      body: JSON.stringify(results)
+      body: JSON.stringify({ status: res.status, body: text.substring(0, 2000) })
     };
 
   } catch (err) {
