@@ -12,6 +12,18 @@ exports.handler = async function(event, context) {
     });
     const tokenData = await tokenRes.json();
 
+    const params = event.queryStringParameters || {};
+    const dateRange = params.dateRange || 'LAST_30_DAYS';
+    const startDate = params.startDate;
+    const endDate = params.endDate;
+
+    let dateClause;
+    if (startDate && endDate) {
+      dateClause = `segments.date BETWEEN '${startDate}' AND '${endDate}'`;
+    } else {
+      dateClause = `segments.date DURING ${dateRange}`;
+    }
+
     const res = await fetch(
       'https://googleads.googleapis.com/v23/customers/4185420382/googleAds:search',
       {
@@ -37,7 +49,7 @@ exports.handler = async function(event, context) {
               metrics.ctr,
               metrics.average_cpc
             FROM campaign
-            WHERE segments.date DURING LAST_30_DAYS
+            WHERE ${dateClause}
             ORDER BY metrics.cost_micros DESC
           `
         })
@@ -66,7 +78,7 @@ exports.handler = async function(event, context) {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ campaigns })
+      body: JSON.stringify({ campaigns, dateRange: startDate ? `${startDate} to ${endDate}` : dateRange })
     };
 
   } catch (err) {
