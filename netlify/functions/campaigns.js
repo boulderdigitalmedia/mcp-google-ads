@@ -12,14 +12,6 @@ exports.handler = async function(event, context) {
     });
     const tokenData = await tokenRes.json();
 
-    if (!tokenData.access_token) {
-      return {
-        statusCode: 200,
-        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ debug: 'token_failed', tokenData })
-      };
-    }
-
     const res = await fetch(
       'https://googleads.googleapis.com/v23/customers/4185420382/googleAds:search',
       {
@@ -27,7 +19,6 @@ exports.handler = async function(event, context) {
         headers: {
           'Authorization': `Bearer ${tokenData.access_token}`,
           'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
-          'login-customer-id': '1535382254',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
