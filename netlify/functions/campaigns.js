@@ -11,7 +11,7 @@ exports.handler = async function(event, context) {
       })
     });
     const tokenData = await tokenRes.json();
-    
+
     if (!tokenData.access_token) {
       return {
         statusCode: 200,
@@ -20,43 +20,28 @@ exports.handler = async function(event, context) {
       };
     }
 
-    const adsRes = await fetch(
-      'https://googleads.googleapis.com/v18/customers/1535382254/googleAds:search',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`,
-          'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
-          'login-customer-id': '1535382254',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          query: `
-            SELECT
-              campaign.name,
-              campaign.status,
-              campaign.advertising_channel_type,
-              campaign_budget.amount_micros,
-              metrics.impressions,
-              metrics.clicks,
-              metrics.cost_micros,
-              metrics.conversions,
-              metrics.ctr,
-              metrics.average_cpc
-            FROM campaign
-            WHERE segments.date DURING LAST_30_DAYS
-            ORDER BY metrics.cost_micros DESC
-          `
-        })
-      }
-    );
+    const results = {};
+    for (const version of ['v19', 'v18', 'v17', 'v16']) {
+      const res = await fetch(
+        `https://googleads.googleapis.com/${version}/customers/1535382254/googleAds:search`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${tokenData.access_token}`,
+            'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+            'login-customer-id': '1535382254',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query: `SELECT campaign.name FROM campaign LIMIT 1` })
+        }
+      );
+      results[version] = { status: res.status, body: (await res.text()).substring(0, 300) };
+    }
 
-    const rawText = await adsRes.text();
-    
     return {
       statusCode: 200,
       headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: adsRes.status, raw: rawText.substring(0, 2000) })
+      body: JSON.stringify(results)
     };
 
   } catch (err) {
